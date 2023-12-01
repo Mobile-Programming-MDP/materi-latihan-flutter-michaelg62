@@ -1,3 +1,4 @@
+import 'package:encrypt/encrypt.dart' as encrypt;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -18,45 +19,109 @@ class _SignInScreenState extends State<SignInScreen> {
   bool _isSignedIn = false;
   bool _obscurePassword = true;
 
-  void _signIn() async {
-    final SharedPreferences prefs = await SharedPreferences.getInstance();
-    final String savedUsername = prefs.getString('username') ?? '';
-    final String savedPassword = prefs.getString('password') ?? '';
-    final String enteredUsername = _usernameController.text.trim();
-    final String enteredPassword = _passwordController.text.trim();
+  Future<Map<String, String>> _retrieveAndDecryptDataFromPrefs(
+    SharedPreferences sharedPreferences
+    ) async {
+      // final SharedPreferences = await prefs;
+      final encryptedUsername = sharedPreferences.getString('username') ?? '';
+      final encryptedPassword = sharedPreferences.getString('password') ?? '';
+      final keyString = sharedPreferences.getString('key') ?? '';
+      final ivString = sharedPreferences.getString('iv') ?? '';
 
-    if (enteredUsername.isEmpty || enteredPassword.isEmpty) {
-      setState(() {
-        _errorText = 'Nama pengguna dan kata sandi harus diisi.';
-      });
-      return;
+      final encrypt.Key key = encrypt.Key.fromBase64(keyString);
+      final iv = encrypt.IV.fromBase64(ivString);
+
+      final encrypter = encrypt.Encrypter(encrypt.AES(key));
+      final decryptedUsername = 
+      encrypter.decrypt64(encryptedUsername, iv: iv);
+      final decryptedPassword =
+      encrypter.decrypt64(encryptedPassword, iv: iv);
+
+      // Mengembalikan data terdeskripsi
+      return {'username': decryptedUsername, 'password': decryptedPassword};
     }
-    if (savedUsername.isEmpty || savedPassword.isEmpty) {
-      setState(() {
-        _errorText = 'Pengguna belum terdaftar. Silakan daftar terlebih dahulu.';
-      });
-      return;
-    }
-    if (enteredUsername == savedUsername && enteredPassword == savedPassword) {
-      setState(() {
-        _errorText = '';
-        _isSignedIn = true;
-        prefs.setBool('isSignIn', true);
-      });
-      // Pemanggilan untuk menghapus semua halaman dalam tumpukan navigasi
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        Navigator.of(context).popUntil((route) => route.isFirst);
-      });
-      // Sign in berhasil, navigasikan ke layar utama
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        Navigator.pushReplacementNamed(context, '/');
-      });
-    } else {
-      setState(() {
-        _errorText = 'Nama pengguna atau kata sandi salah.';
-      });
+
+  void _signIn() async {
+    try {
+      final Future<SharedPreferences> prefsFuture =
+      SharedPreferences.getInstance();
+
+      final String username = _usernameController.text;
+      final String password = _passwordController.text;
+      print('Sign in attempt');
+
+      if (username.isNotEmpty && password.isNotEmpty) {
+        final SharedPreferences prefs = await prefsFuture;
+        final data = await _retrieveAndDecryptDataFromPrefs(prefs);
+        if (data.isNotEmpty) {
+          final decryptedUsername = data['username'];
+          final decryptedPassword = data['password'];
+
+          if (username == decryptedUsername && password == decryptedPassword) {
+            _errorText = '';
+            _isSignedIn = true;
+            prefs.setBool('isSignedIn', true);
+            // Pemanggilan untuk menghapus semua halaman dalam tumpukan navigasi
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              Navigator.of(context).popUntil((route) => route.isFirst);
+            });
+            // Sign in berhasil, navigasikan ke layar utama
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              Navigator.pushReplacementNamed(context, '/');
+            });
+            print('Sign in secceeded');
+          } else {
+            print('Username or password is incorrect');
+          }
+        } else {
+          print('No stored credentials found');
+        }
+      } else {
+        print('Username and password cannot be empty');
+        // Tambahkan pesan untuk kasus ketika username atau password kosong
+      }
+    } catch (e) {
+      print('An error occurred: $e');
     }
   }
+  //   final SharedPreferences prefs = await SharedPreferences.getInstance();
+  //   final String savedUsername = prefs.getString('username') ?? '';
+  //   final String savedPassword = prefs.getString('password') ?? '';
+  //   final String enteredUsername = _usernameController.text.trim();
+  //   final String enteredPassword = _passwordController.text.trim();
+
+  //   if (enteredUsername.isEmpty || enteredPassword.isEmpty) {
+  //     setState(() {
+  //       _errorText = 'Nama pengguna dan kata sandi harus diisi.';
+  //     });
+  //     return;
+  //   }
+  //   if (savedUsername.isEmpty || savedPassword.isEmpty) {
+  //     setState(() {
+  //       _errorText = 'Pengguna belum terdaftar. Silakan daftar terlebih dahulu.';
+  //     });
+  //     return;
+  //   }
+  //   if (enteredUsername == savedUsername && enteredPassword == savedPassword) {
+  //     setState(() {
+  //       _errorText = '';
+  //       _isSignedIn = true;
+  //       prefs.setBool('isSignIn', true);
+  //     });
+  //     // Pemanggilan untuk menghapus semua halaman dalam tumpukan navigasi
+  //     WidgetsBinding.instance.addPostFrameCallback((_) {
+  //       Navigator.of(context).popUntil((route) => route.isFirst);
+  //     });
+  //     // Sign in berhasil, navigasikan ke layar utama
+  //     WidgetsBinding.instance.addPostFrameCallback((_) {
+  //       Navigator.pushReplacementNamed(context, '/');
+  //     });
+  //   } else {
+  //     setState(() {
+  //       _errorText = 'Nama pengguna atau kata sandi salah.';
+  //     });
+  //   }
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -103,9 +168,11 @@ class _SignInScreenState extends State<SignInScreen> {
                 ),
                 // TODO: 7. Pasang ElevotedButton Sign In
                 SizedBox(height: 20),
-                // TextButton(
-                //   onPressed: (){},
-                //   child: Text('Sign In')),
+                TextButton(
+                  onPressed: (){
+                    
+                  },
+                  child: Text('Sign In')),
                 // TODO: 8. Pasang TextButton Sign Up
                 SizedBox(height: 10),
                 //...
