@@ -11,29 +11,19 @@ class ItemCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // TODO: 6. Implementasi routing ke DetailScreen
-    onTap:
-    () {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => DetailScreen(candi: candi),
-        ),
-      );
-    };
-
     return InkWell(
       onTap: () {
         Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => DetailScreen(candi: candi),
-          )
+          context,
+          MaterialPageRoute(
+            builder: (context) => DetailScreen(candi: candi),
+          ),
         );
       },
       child: Card(
-        // TODO: 2. Tetapkan parameter shape, margin, dan elevation dari Cari
+      // TODO: 2. Tetapkan parameter shape, margin, dan elevation dari Cari
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(15),
+          borderRadius: BorderRadius.circular(15), 
         ),
         margin: EdgeInsets.all(4),
         elevation: 1,
@@ -43,13 +33,16 @@ class ItemCard extends StatelessWidget {
             // TODO: 3. Buat Image sebagai anak dari Column
             Expanded(
               // TODO: 7. Implementasi Hero animation
-              child: ClipRRect(
-                child: Image.asset(
-                  candi.imageAsset,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
+              child: Hero(
+                tag: candi.imageAsset,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(15),
+                  child: Image.asset(
+                    candi.imageAsset,
+                    width: double.infinity,
+                    fit: BoxFit.cover,
+                  ),
                 ),
-                borderRadius: BorderRadius.circular(15),
               ),
             ),
             Padding(
